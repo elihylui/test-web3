@@ -1,5 +1,5 @@
 import { useEffect, useState, FormEvent } from 'react';
-import { useContract, useSigner } from 'wagmi';
+import { useContractWrite, usePrepareContractWrite, useConnect, useAccount } from 'wagmi';
 
 import { TRADE_ABI } from '@/contracts/TRADE_ABI';
 
@@ -11,33 +11,37 @@ export const RegisterIntent = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const { data: signerData } = useSigner();
+    // const { data: signerData } = useSigner();
+    const { address, isConnecting, isConnected, isDisconnected } = useAccount()
 
     const tradeAddress = '0xB05636e6d474f7eeaCdd8aF3102D9D8Df1C9e16c';
     const tradeABI = TRADE_ABI;
 
-    const tradeContract = useContract({
+    const {config} = usePrepareContractWrite({
         address: tradeAddress,
         abi: tradeABI,
-        signerOrProvider: signerData,
-    });
+        functionName: "registerIntent",
+        args: [tokenIn, amount, liquidity]
+      });
+    
+    const { write } = useContractWrite(config)
 
     useEffect(() => {
-        if (signerData) {
+        if (isConnected) {
           setError('');
           setLoading(false);
         } else {
           setLoading(false);
           setError('please connect your wallet');
         }
-      }, [signerData]);
+      }, [address]);
 
       const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
           setLoading(true);
-          const tx = await tradeContract?.registerIntent(tokenIn, amount, liquidity)
-          await tx.wait();
+           const tx = write?.()
+        //   await tx.wait();
           console.log(tx);
           //setNewGreeter('');
           setLoading(false);
